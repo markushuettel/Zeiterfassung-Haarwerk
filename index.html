@@ -304,8 +304,6 @@
 </div>
 
 <script>
-    let yearlyVacation = 16;
-
     function getAustrianHolidays(year) {
         let holidays = {
             [`${year}-01-01`]: "Neujahr",
@@ -378,21 +376,76 @@
         return 'zeiterfassung_' + (monthStr || document.getElementById('monthPicker').value);
     }
 
-    function calculateTotalUsedVacationInYear(currentYear) {
-        let used = 0;
+    function getRestUrlaub(targetYear, targetMonth) {
+        let used2026 = 0;
         for (let m = 1; m <= 12; m++) {
-            const monthStr = `${currentYear}-${String(m).padStart(2, '0')}`;
+            let mStr = `2026-${String(m).padStart(2, '0')}`;
             try {
-                const dataStr = localStorage.getItem('zeiterfassung_' + monthStr);
+                let dataStr = localStorage.getItem('zeiterfassung_' + mStr);
                 if (dataStr) {
-                    const data = JSON.parse(dataStr);
+                    let data = JSON.parse(dataStr);
                     Object.values(data).forEach(day => {
-                        if (day.status === 'Urlaub') used++;
+                        if (day.status === 'Urlaub') used2026++;
                     });
                 }
             } catch(e) {}
         }
-        return used;
+        let rest2026 = 16 - used2026;
+
+        if (targetYear === 2026) {
+            let usedSoFar = 0;
+            for (let m = 1; m <= targetMonth; m++) {
+                let mStr = `2026-${String(m).padStart(2, '0')}`;
+                try {
+                    let dataStr = localStorage.getItem('zeiterfassung_' + mStr);
+                    if (dataStr) {
+                        let data = JSON.parse(dataStr);
+                        Object.values(data).forEach(day => {
+                            if (day.status === 'Urlaub') usedSoFar++;
+                        });
+                    }
+                } catch(e) {}
+            }
+            return 16 - usedSoFar;
+        }
+
+        let pool = rest2026 + 20;
+
+        if (targetYear === 2027) {
+            let used2027SoFar = 0;
+            for (let m = 1; m <= targetMonth; m++) {
+                let mStr = `2027-${String(m).padStart(2, '0')}`;
+                try {
+                    let dataStr = localStorage.getItem('zeiterfassung_' + mStr);
+                    if (dataStr) {
+                        let data = JSON.parse(dataStr);
+                        Object.values(data).forEach(day => {
+                            if (day.status === 'Urlaub') used2027SoFar++;
+                        });
+                    }
+                } catch(e) {}
+            }
+            return pool - used2027SoFar;
+        }
+
+        let currentPool = pool;
+        for (let y = 2028; y <= targetYear; y++) {
+            currentPool += 20;
+            let limitMonth = (y === targetYear) ? targetMonth : 12;
+            for (let m = 1; m <= limitMonth; m++) {
+                let mStr = `${y}-${String(m).padStart(2, '0')}`;
+                try {
+                    let dataStr = localStorage.getItem('zeiterfassung_' + mStr);
+                    if (dataStr) {
+                        let data = JSON.parse(dataStr);
+                        Object.values(data).forEach(day => {
+                            if (day.status === 'Urlaub') currentPool--;
+                        });
+                    }
+                } catch(e) {}
+            }
+        }
+        return currentPool;
     }
 
     function renderDays() {
@@ -554,9 +607,7 @@
             localStorage.setItem(getStorageKey(), JSON.stringify(monthData));
         } catch(e) {}
 
-        const totalVacationUsedInYear = calculateTotalUsedVacationInYear(year);
-        const restVacation = yearlyVacation - totalVacationUsedInYear;
-
+        const restVacation = getRestUrlaub(year, month);
         document.getElementById('restUrlaub').innerText = `${restVacation} Tage`;
         document.getElementById('urlaubVerbraucht').innerText = `${urlaubTageMonat} Tage`;
         document.getElementById('krankTage').innerText = `${krankTageMonat} Tage`;
