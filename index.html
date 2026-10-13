@@ -446,37 +446,44 @@
             let titleDisplay = `${dayName}, ${dateStr}`;
             if (isHoliday) {
                 titleDisplay += ` (${holidayName})`;
+                card.innerHTML = `
+                    <div class="day-header">
+                        <span class="day-title holiday-text">${titleDisplay}</span>
+                        <span class="day-soll">Soll: 0h</span>
+                    </div>
+                    <div class="pause-info" style="margin-top: 4px; text-align: left;">Gesetzlicher Feiertag (keine Arbeitszeit)</div>
+                `;
+            } else {
+                card.innerHTML = `
+                    <div class="day-header">
+                        <span class="day-title">${titleDisplay}</span>
+                        <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
+                    </div>
+                    <div class="inputs-grid">
+                        <div class="input-group">
+                            <span class="input-label">Anfang</span>
+                            <input type="time" id="start_${d}" value="${defaultStart}" oninput="saveAndRecalculate()">
+                        </div>
+                        <div class="input-group">
+                            <span class="input-label">Ende</span>
+                            <input type="time" id="end_${d}" value="${defaultEnd}" oninput="saveAndRecalculate()">
+                        </div>
+                        <div class="input-group">
+                            <span class="input-label">Pause</span>
+                            <input type="number" id="pause_${d}" value="${defaultPause}" oninput="saveAndRecalculate()">
+                        </div>
+                        <div class="input-group">
+                            <span class="input-label">Status</span>
+                            <select id="status_${d}" onchange="saveAndRecalculate()">
+                                <option value="Arbeit" ${defaultStatus === 'Arbeit' ? 'selected' : ''}>Arbeit</option>
+                                <option value="Urlaub" ${defaultStatus === 'Urlaub' ? 'selected' : ''}>Urlaub</option>
+                                <option value="Krank" ${defaultStatus === 'Krank' ? 'selected' : ''}>Krank</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="pause-info">Gesetzliche Pause: 45 Min bei 9,75h Arbeitszeit</div>
+                `;
             }
-
-            card.innerHTML = `
-                <div class="day-header">
-                    <span class="day-title ${isHoliday ? 'holiday-text' : ''}">${titleDisplay}</span>
-                    <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
-                </div>
-                <div class="inputs-grid">
-                    <div class="input-group">
-                        <span class="input-label">Anfang</span>
-                        <input type="time" id="start_${d}" value="${defaultStart}" oninput="saveAndRecalculate()">
-                    </div>
-                    <div class="input-group">
-                        <span class="input-label">Ende</span>
-                        <input type="time" id="end_${d}" value="${defaultEnd}" oninput="saveAndRecalculate()">
-                    </div>
-                    <div class="input-group">
-                        <span class="input-label">Pause</span>
-                        <input type="number" id="pause_${d}" value="${defaultPause}" oninput="saveAndRecalculate()">
-                    </div>
-                    <div class="input-group">
-                        <span class="input-label">Status</span>
-                        <select id="status_${d}" onchange="saveAndRecalculate()">
-                            <option value="Arbeit" ${defaultStatus === 'Arbeit' ? 'selected' : ''}>Arbeit</option>
-                            <option value="Urlaub" ${defaultStatus === 'Urlaub' ? 'selected' : ''}>Urlaub</option>
-                            <option value="Krank" ${defaultStatus === 'Krank' ? 'selected' : ''}>Krank</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="pause-info">Gesetzliche Pause: 45 Min bei 9,75h Arbeitszeit</div>
-            `;
             container.appendChild(card);
         }
 
@@ -502,6 +509,8 @@
             const ddStr = String(d).padStart(2, '0');
             const isHoliday = !!holidays[`${year}-${mmStr}-${ddStr}`];
             const isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5) && !isHoliday;
+
+            if (isHoliday) continue;
 
             const startEl = document.getElementById(`start_${d}`);
             const endEl = document.getElementById(`end_${d}`);
@@ -604,12 +613,6 @@
             let isHoliday = !!holidayName;
             let isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5) && !isHoliday;
 
-            let daySaved = savedData[`day_${d}`] || {};
-            let start = daySaved.start || (isWorkday ? '08:00' : '-');
-            let end = daySaved.end || (isWorkday ? '18:30' : '-');
-            let pause = daySaved.pause !== undefined ? daySaved.pause : (isWorkday ? '45' : '0');
-            let status = daySaved.status || 'Arbeit';
-
             let dateStr = `${ddStr}.${mmStr}.${year}`;
             let line = `${dayName}, ${dateStr}: `;
             if (isHoliday) {
@@ -617,6 +620,12 @@
             } else if (!isWorkday) {
                 line += `Wochenende / Frei`;
             } else {
+                let daySaved = savedData[`day_${d}`] || {};
+                let start = daySaved.start || '08:00';
+                let end = daySaved.end || '18:30';
+                let pause = daySaved.pause !== undefined ? daySaved.pause : '45';
+                let status = daySaved.status || 'Arbeit';
+
                 if (status === 'Urlaub') {
                     line += `Urlaub`;
                 } else if (status === 'Krank') {
