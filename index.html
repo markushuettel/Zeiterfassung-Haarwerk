@@ -49,6 +49,7 @@
         .subtitle {
             font-size: 0.85rem;
             color: var(--text-muted);
+            line-height: 1.4;
         }
 
         .card {
@@ -227,7 +228,11 @@
 <div class="container">
     <header>
         <h1>Zeiterfassung & Urlaub</h1>
-        <div class="subtitle">4-Tage-Woche (Di–Fr | 39h/Woche) • 16 Tage Urlaubsanspruch</div>
+        <div class="subtitle">
+            <strong>Mitarbeiterin:</strong> Julia Österreicher<br>
+            <strong>Betrieb:</strong> Haarwerk-Leonding by Petra Aumayr<br>
+            4-Tage-Woche (Di–Fr | 39h/Woche) • 16 Tage Urlaubsanspruch
+        </div>
     </header>
 
     <!-- Urlaubs- & Stundenübersicht -->
@@ -471,7 +476,7 @@
         const [year, month] = pickerVal.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        let csvContent = "data:text/csv;charset=utf-8,Datum;Wochentag;Arbeitsbeginn;Arbeitsende;Pause (Min);Status\n";
+        let csvContent = "data:text/csv;charset=utf-8,Mitarbeiterin: Julia Österreicher;Betrieb: Haarwerk-Leonding by Petra Aumayr\nDatum;Wochentag;Arbeitsbeginn;Arbeitsende;Pause (Min);Status\n";
 
         for (let d = 1; d <= daysInMonth; d++) {
             const date = new Date(year, month - 1, d);
@@ -490,7 +495,7 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Zeiterfassung_${year}_${month}.csv`);
+        link.setAttribute("download", `Zeiterfassung_Julia_Oesterreicher_${year}_${month}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
