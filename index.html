@@ -349,7 +349,7 @@
 
             card.innerHTML = `
                 <div class="day-header">
-                    <span class="day-title">${dayName}, ${dateStr}</span>
+                    <span class="day-title">${dayName},${dateStr}</span>
                     <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
                 </div>
                 <div class="inputs-grid">
@@ -486,22 +486,4 @@
 
             const startVal = document.getElementById(`start_${d}`).value;
             const endVal = document.getElementById(`end_${d}`).value;
-            const pauseVal = document.getElementById(`pause_${d}`).value;
-            const status = document.getElementById(`status_${d}`).value;
-
-            csvContent += `${dateStr};${dayName};${startVal};${endVal};${pauseVal};${status}\n`;
-        }
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Zeiterfassung_Julia_Oesterreicher_${year}_${month}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    renderDays();
-</script>
-</body>
-</html>
+            const pauseVal = document.getElementById(`pause_${
