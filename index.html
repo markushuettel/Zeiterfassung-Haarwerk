@@ -70,12 +70,6 @@
             margin-bottom: 10px;
         }
 
-        .stats-grid-2 {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
         .stat-box {
             background: #f9fafb;
             padding: 10px 6px;
@@ -206,7 +200,14 @@
         .btn-secondary {
             background: #4b5563;
         }
-    </style>
+    
+        @media print {
+            body { background: white; padding: 0; }
+            .footer-nav, .month-picker-container { display: none !important; }
+            .card, .day-card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid; }
+            input, select { border: none; background: transparent; font-weight: bold; appearance: none; -webkit-appearance: none; }
+        }
+</style>
 </head>
 <body>
 
@@ -216,7 +217,7 @@
         <div class="subtitle">
             <strong>Mitarbeiterin:</strong> Julia Österreicher<br>
             <strong>Betrieb:</strong> Haarwerk-Leonding by Petra Aumayr<br>
-            4-Tage-Woche (Di–Fr | 39h/Woche) • 16 Tage Urlaubsanspruch
+            4-Tage-Woche (Di–Fr | 39h/Woche)
         </div>
     </header>
 
@@ -236,10 +237,14 @@
                 <div class="stat-val" id="krankTage">0 Tage</div>
             </div>
         </div>
-        <div class="stats-grid-2">
+        <div class="stats-grid-3" style="margin-top: 8px;">
             <div class="stat-box">
-                <div class="stat-label">IST-Std. (Monat)</div>
+                <div class="stat-label">IST-Std.</div>
                 <div class="stat-val" id="istStunden">0.0h</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">SOLL-Std.</div>
+                <div class="stat-val" id="sollStunden">0.0h</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Überstunden</div>
@@ -259,12 +264,13 @@
 </div>
 
 <div class="footer-nav">
-    <button class="btn btn-secondary" onclick="resetMonth()">Monat leeren</button>
-    <button class="btn" onclick="exportCSV()">Monat als CSV Exportieren</button>
+    <button class="btn btn-secondary" onclick="resetMonth()">Leeren</button>
+    <button class="btn btn-secondary" onclick="exportPDF()">PDF Export</button>
+    <button class="btn" onclick="exportCSV()">CSV Export</button>
 </div>
 
 <script>
-    let yearlyVacation = 16;
+    let yearlyVacation = parseInt(localStorage.getItem('yearly_vacation')) || 16;
 
     function changeMonth(delta) {
         const picker = document.getElementById('monthPicker');
@@ -423,7 +429,9 @@
         document.getElementById('krankTage').innerText = `${krankTageMonat} Tage`;
 
         const istHours = (totalIstMin / 60).toFixed(2);
+        const sollHours = (totalSollMin / 60).toFixed(2);
         document.getElementById('istStunden').innerText = `${istHours}h`;
+        document.getElementById('sollStunden').innerText = `${sollHours}h`;
 
         const diffMin = totalIstMin - totalSollMin;
         const diffHours = (diffMin / 60).toFixed(2);
@@ -438,6 +446,10 @@
         }
     }
 
+    function exportPDF() {
+        window.print();
+    }
+
     function exportCSV() {
         const pickerVal = document.getElementById('monthPicker').value;
         const [year, month] = pickerVal.split('-').map(Number);
@@ -447,13 +459,14 @@
         const urlaubMonat = document.getElementById('urlaubVerbraucht').innerText;
         const krankMonat = document.getElementById('krankTage').innerText;
         const istStd = document.getElementById('istStunden').innerText;
+        const sollStdSum = document.getElementById('sollStunden').innerText;
         const ueberStd = document.getElementById('ueberstunden').innerText;
 
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "Mitarbeiterin:;Julia Österreicher;Betrieb:;Haarwerk-Leonding by Petra Aumayr\n";
         csvContent += `Monat:;${month}/${year};Jahresurlaub Gesamt:;${yearlyVacation} Tage\n`;
         csvContent += `Resturlaub (Jahr):;${restUrlaub};Urlaub (Monat):;${urlaubMonat};Krankheit (Monat):;${krankMonat}\n`;
-        csvContent += `IST-Stunden (Monat):;${istStd};Ueberstunden (Monat):;${ueberStd}\n\n`;
+        csvContent += `IST-Stunden (Monat):;${istStd};SOLL-Stunden (Monat):;${sollStdSum};Ueberstunden (Monat):;${ueberStd}\n\n`;
         csvContent += "Datum;Wochentag;Arbeitsbeginn;Arbeitsende;Pause (Min);Soll (Std);Ist (Std);Status\n";
 
         for (let d = 1; d <= daysInMonth; d++) {
