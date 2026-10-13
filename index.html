@@ -386,9 +386,17 @@
                 const dataStr = localStorage.getItem('zeiterfassung_' + monthStr);
                 if (dataStr) {
                     const data = JSON.parse(dataStr);
-                    Object.values(data).forEach(day => {
-                        if (day.status === 'Urlaub') used++;
-                    });
+                    const daysInM = new Date(currentYear, m, 0).getDate();
+                    for (let d = 1; d <= daysInM; d++) {
+                        const dayObj = data[`day_${d}`];
+                        if (dayObj && dayObj.status === 'Urlaub') {
+                            if (m === 12 && (d === 24 || d === 31)) {
+                                used += 0.5;
+                            } else {
+                                used += 1;
+                            }
+                        }
+                    }
                 }
             } catch(e) {}
         }
@@ -443,15 +451,17 @@
 
             card.className = cardClass;
 
-            let titleDisplay = `${dayName}, ${dateStr}`;
+            let titleDisplay = `${dayName},${dateStr}`;
             if (isHoliday) {
                 titleDisplay += ` (${holidayName})`;
             }
 
+            const sollText = isWorkday ? ((month === 12 && (d === 24 || d === 31)) ? '4:52h' : '9:45h') : '0h';
+
             card.innerHTML = `
                 <div class="day-header">
                     <span class="day-title ${isHoliday ? 'holiday-text' : ''}">${titleDisplay}</span>
-                    <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
+                    <span class="day-soll">Soll: ${sollText}</span>
                 </div>
                 <div class="inputs-grid">
                     <div class="input-group">
@@ -522,12 +532,20 @@
                 status: statusVal
             };
 
-            const sollMin = isWorkday ? 585 : 0;
+            let sollMin = isWorkday ? 585 : 0;
+            const isHalfDay = (month === 12 && (d === 24 || d === 31));
+            if (isHalfDay && isWorkday) {
+                sollMin = 292.5;
+            }
             totalSollMin += sollMin;
 
             if (isWorkday) {
                 if (statusVal === 'Urlaub') {
-                    urlaubTageMonat++;
+                    if (month === 12 && (d === 24 || d === 31)) {
+                        urlaubTageMonat += 0.5;
+                    } else {
+                        urlaubTageMonat += 1;
+                    }
                     totalIstMin += sollMin;
                 } else if (statusVal === 'Krank') {
                     krankTageMonat++;
@@ -574,7 +592,7 @@
         
         const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
         const monthName = monthNames[month - 1];
-        const subject = encodeURIComponent(`Zeiterfassung ${monthName} ${year}`);
+        const subject = encodeURIComponent(`Zeiterfassung ${monthName}${year}`);
         const istStd = document.getElementById('istStunden').innerText;
         const sollStd = document.getElementById('sollStunden').innerText;
         const ueberStd = document.getElementById('ueberstunden').innerText;
@@ -582,24 +600,10 @@
         const krankMonat = document.getElementById('krankTage').innerText;
 
         const bodyText = encodeURIComponent(
-            `Hallo Petra,\n\nhier ist meine Zeiterfassung für ${monthName} ${year}:\n\n` +
+            `Hallo Petra,\n\nhier ist meine Zeiterfassung für ${monthName}${year}:\n\n` +
             `Mitarbeiterin: Julia Österreicher\n` +
             `Betrieb: Haarwerk-Leonding by Petra Aumayr e.U., Stadtplatz 13, 4060 Leonding\n\n` +
             `SOLL-Stunden: ${sollStd}\n` +
             `IST-Stunden: ${istStd}\n` +
             `Überstunden: ${ueberStd}\n` +
-            `Urlaubstage (Monat): ${urlaubMonat}\n` +
-            `Krankheitstage (Monat): ${krankMonat}\n\n` +
-            `(Bitte nutze den PDF-Export Button in der App, um die vollständige PDF-Ansicht als Anhang mitzusenden).\n\nLiebe Grüße\nJulia`
-        );
-
-        window.location.href = `mailto:info@haarwerk-leonding.at?subject=${subject}&body=${bodyText}`;
-    }
-
-    window.onload = function() {
-        renderDays();
-    };
-    renderDays();
-</script>
-</body>
-</html>
+            `Urlaubstage (Monat): ${urlaubMon
