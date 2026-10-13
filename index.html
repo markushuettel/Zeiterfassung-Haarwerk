@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Zeiterfassung App</title>
+    <title>ZEITERFASSUNG 2026</title>
     <style>
         :root {
             --primary: #1f2937;
@@ -28,7 +28,7 @@
             color: var(--text);
             margin: 0;
             padding: 16px;
-            padding-bottom: 90px;
+            padding-bottom: 100px;
         }
 
         .container {
@@ -44,6 +44,8 @@
             font-size: 1.5rem;
             margin: 0 0 4px 0;
             color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .subtitle {
@@ -94,23 +96,6 @@
             font-size: 1.1rem;
             font-weight: 700;
             color: var(--primary);
-        }
-
-        .setting-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            margin-top: 10px;
-            padding-top: 8px;
-            border-top: 1px solid var(--border);
-        }
-
-        .setting-row input {
-            width: 70px;
-            padding: 4px;
-            text-align: center;
-            font-weight: bold;
         }
 
         .month-picker-container {
@@ -227,7 +212,7 @@
 
 <div class="container">
     <header>
-        <h1>Zeiterfassung & Urlaub</h1>
+        <h1>ZEITERFASSUNG 2026</h1>
         <div class="subtitle">
             <strong>Mitarbeiterin:</strong> Julia Österreicher<br>
             <strong>Betrieb:</strong> Haarwerk-Leonding by Petra Aumayr<br>
@@ -261,10 +246,6 @@
                 <div class="stat-val" id="ueberstunden">+0.0h</div>
             </div>
         </div>
-        <div class="setting-row">
-            <span>Jährlicher Urlaubsanspruch:</span>
-            <input type="number" id="yearlyVacationInput" value="16" oninput="saveYearlyVacation()">
-        </div>
     </div>
 
     <!-- Kalendermonat Navigation -->
@@ -283,17 +264,7 @@
 </div>
 
 <script>
-    let yearlyVacation = parseInt(localStorage.getItem('yearly_vacation')) || 16;
-    document.getElementById('yearlyVacationInput').value = yearlyVacation;
-
-    function saveYearlyVacation() {
-        const val = parseInt(document.getElementById('yearlyVacationInput').value);
-        if (!isNaN(val)) {
-            yearlyVacation = val;
-            localStorage.setItem('yearly_vacation', yearlyVacation);
-            recalculate();
-        }
-    }
+    let yearlyVacation = 16;
 
     function changeMonth(delta) {
         const picker = document.getElementById('monthPicker');
@@ -349,7 +320,7 @@
 
             card.innerHTML = `
                 <div class="day-header">
-                    <span class="day-title">${dayName},${dateStr}</span>
+                    <span class="day-title">${dayName}, ${dateStr}</span>
                     <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
                 </div>
                 <div class="inputs-grid">
@@ -368,7 +339,7 @@
             container.appendChild(card);
         }
 
-        recalculate();
+        saveAndRecalculate();
     }
 
     function calculateTotalUsedVacationInYear(currentYear) {
@@ -460,10 +431,6 @@
         document.getElementById('ueberstunden').innerText = `${sign}${diffHours}h`;
     }
 
-    function recalculate() {
-        saveAndRecalculate();
-    }
-
     function resetMonth() {
         if (confirm("Möchtest du alle eingetragenen Zeiten für diesen Monat zurücksetzen?")) {
             localStorage.removeItem(getStorageKey());
@@ -476,7 +443,18 @@
         const [year, month] = pickerVal.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        let csvContent = "data:text/csv;charset=utf-8,Mitarbeiterin: Julia Österreicher;Betrieb: Haarwerk-Leonding by Petra Aumayr\nDatum;Wochentag;Arbeitsbeginn;Arbeitsende;Pause (Min);Status\n";
+        const restUrlaub = document.getElementById('restUrlaub').innerText;
+        const urlaubMonat = document.getElementById('urlaubVerbraucht').innerText;
+        const krankMonat = document.getElementById('krankTage').innerText;
+        const istStd = document.getElementById('istStunden').innerText;
+        const ueberStd = document.getElementById('ueberstunden').innerText;
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Mitarbeiterin:;Julia Österreicher;Betrieb:;Haarwerk-Leonding by Petra Aumayr\n";
+        csvContent += `Monat:;${month}/${year};Jahresurlaub Gesamt:;${yearlyVacation} Tage\n`;
+        csvContent += `Resturlaub (Jahr):;${restUrlaub};Urlaub (Monat):;${urlaubMonat};Krankheit (Monat):;${krankMonat}\n`;
+        csvContent += `IST-Stunden (Monat):;${istStd};Ueberstunden (Monat):;${ueberStd}\n\n`;
+        csvContent += "Datum;Wochentag;Arbeitsbeginn;Arbeitsende;Pause (Min);Soll (Std);Ist (Std);Status\n";
 
         for (let d = 1; d <= daysInMonth; d++) {
             const date = new Date(year, month - 1, d);
@@ -486,4 +464,38 @@
 
             const startVal = document.getElementById(`start_${d}`).value;
             const endVal = document.getElementById(`end_${d}`).value;
-            const pauseVal = document.getElementById(`pause_${
+            const pauseVal = document.getElementById(`pause_${d}`).value;
+            const status = document.getElementById(`status_${d}`).value;
+
+            const isWorkday = (date.getDay() >= 2 && date.getDay() <= 5);
+            const sollStd = isWorkday ? "9.75" : "0";
+            
+            let istStdTag = "0";
+            if (status === "Urlaub" || status === "Krank") {
+                istStdTag = sollStd;
+            } else if (status === "Arbeit" && startVal && endVal) {
+                const [sH, sM] = startVal.split(':').map(Number);
+                const [eH, eM] = endVal.split(':').map(Number);
+                let diffMin = (eH * 60 + eM) - (sH * 60 + sM) - (parseInt(pauseVal) || 0);
+                if (diffMin > 0) istStdTag = (diffMin / 60).toFixed(2);
+            }
+
+            csvContent += `${dateStr};${dayName};${startVal};${endVal};${pauseVal};${sollStd};${istStdTag};${status}\n`;
+        }
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Zeiterfassung_Julia_Oesterreicher_${year}_${month}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    window.onload = function() {
+        renderDays();
+    };
+    renderDays();
+</script>
+</body>
+</html>
