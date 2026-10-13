@@ -669,7 +669,7 @@
         let holidays = getAustrianHolidays(year);
         let dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
         
-        let detailsText = "";
+        let detailsText = "Datum       | Tag | Arbeitszeit / Status\n----------------------------------------\n";
         let savedData = {};
         try {
             const data = localStorage.getItem(getStorageKey());
@@ -688,11 +688,12 @@
             let isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5) && !isHoliday;
 
             let dateStr = `${ddStr}.${mmStr}.${year}`;
-            let line = `${dayName}, ${dateStr} | `;
+            let statusDetail = "";
+
             if (isHoliday) {
-                line += `Feiertag: ${holidayName}`;
+                statusDetail = `Feiertag (${holidayName})`;
             } else if (!isWorkday) {
-                line += `Freier Tag / Wochenende`;
+                statusDetail = `Freier Tag / Wochenende`;
             } else {
                 let daySaved = savedData[`day_${d}`] || {};
                 let start = daySaved.start || '08:00';
@@ -701,14 +702,14 @@
                 let status = daySaved.status || 'Arbeit';
 
                 if (status === 'Urlaub') {
-                    line += `Urlaub`;
+                    statusDetail = `Urlaub`;
                 } else if (status === 'Krank') {
-                    line += `Krank`;
+                    statusDetail = `Krank`;
                 } else {
-                    line += `Arbeit: ${start} - ${end} Uhr (Pause: ${pause} Min)`;
+                    statusDetail = `Arbeit: ${start} - ${end} Uhr (Pause: ${pause} Min)`;
                 }
             }
-            detailsText += line + "\n";
+            detailsText += `${dateStr} | ${dayName} | ${statusDetail}\n`;
         }
 
         const bodyText = encodeURIComponent(
@@ -721,7 +722,7 @@
             `Überstunden: ${ueberStd}\n` +
             `Urlaubstage (Monat): ${urlaubMonat}\n` +
             `Krankheitstage (Monat): ${krankMonat}\n\n` +
-            `--- TAGESAUFSTELLUNG ---\n` +
+            `--- MONATSTABELLE (TAGESAUFSTELLUNG) ---\n` +
             detailsText + `\n` +
             `Hiermit bestätige ich, Julia Österreicher, durch den Versand der Stunden, dass ich diese geprüft habe und sie auf Richtigkeit bestimmt sind.\n\n` +
             `Liebe Grüße\nJulia`
