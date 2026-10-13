@@ -386,17 +386,9 @@
                 const dataStr = localStorage.getItem('zeiterfassung_' + monthStr);
                 if (dataStr) {
                     const data = JSON.parse(dataStr);
-                    const daysInM = new Date(currentYear, m, 0).getDate();
-                    for (let d = 1; d <= daysInM; d++) {
-                        const dayObj = data[`day_${d}`];
-                        if (dayObj && dayObj.status === 'Urlaub') {
-                            if (m === 12 && (d === 24 || d === 31)) {
-                                used += 0.5;
-                            } else {
-                                used += 1;
-                            }
-                        }
-                    }
+                    Object.values(data).forEach(day => {
+                        if (day.status === 'Urlaub') used++;
+                    });
                 }
             } catch(e) {}
         }
@@ -451,12 +443,12 @@
 
             card.className = cardClass;
 
-            let titleDisplay = `${dayName},${dateStr}`;
+            let titleDisplay = `${dayName}, ${dateStr}`;
             if (isHoliday) {
                 titleDisplay += ` (${holidayName})`;
             }
 
-            const sollText = isWorkday ? ((month === 12 && (d === 24 || d === 31)) ? '4:52h' : '9:45h') : '0h';
+            const sollText = isWorkday ? '9:45h' : '0h';
 
             card.innerHTML = `
                 <div class="day-header">
@@ -532,20 +524,12 @@
                 status: statusVal
             };
 
-            let sollMin = isWorkday ? 585 : 0;
-            const isHalfDay = (month === 12 && (d === 24 || d === 31));
-            if (isHalfDay && isWorkday) {
-                sollMin = 292.5;
-            }
+            const sollMin = isWorkday ? 585 : 0;
             totalSollMin += sollMin;
 
             if (isWorkday) {
                 if (statusVal === 'Urlaub') {
-                    if (month === 12 && (d === 24 || d === 31)) {
-                        urlaubTageMonat += 0.5;
-                    } else {
-                        urlaubTageMonat += 1;
-                    }
+                    urlaubTageMonat++;
                     totalIstMin += sollMin;
                 } else if (statusVal === 'Krank') {
                     krankTageMonat++;
@@ -566,44 +550,4 @@
         const totalVacationUsedInYear = calculateTotalUsedVacationInYear(year);
         const restVacation = yearlyVacation - totalVacationUsedInYear;
 
-        document.getElementById('restUrlaub').innerText = `${restVacation} Tage`;
-        document.getElementById('urlaubVerbraucht').innerText = `${urlaubTageMonat} Tage`;
-        document.getElementById('krankTage').innerText = `${krankTageMonat} Tage`;
-
-        const istHours = (totalIstMin / 60).toFixed(2);
-        const sollHours = (totalSollMin / 60).toFixed(2);
-        document.getElementById('istStunden').innerText = `${istHours}h`;
-        document.getElementById('sollStunden').innerText = `${sollHours}h`;
-
-        const diffMin = totalIstMin - totalSollMin;
-        const diffHours = (diffMin / 60).toFixed(2);
-        const sign = diffMin >= 0 ? '+' : '';
-        document.getElementById('ueberstunden').innerText = `${sign}${diffHours}h`;
-    }
-
-    function exportPDF() {
-        window.print();
-    }
-
-    function prepareEmail(e) {
-        e.preventDefault();
-        const pickerVal = document.getElementById('monthPicker').value;
-        const [year, month] = pickerVal.split('-').map(Number);
-        
-        const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-        const monthName = monthNames[month - 1];
-        const subject = encodeURIComponent(`Zeiterfassung ${monthName}${year}`);
-        const istStd = document.getElementById('istStunden').innerText;
-        const sollStd = document.getElementById('sollStunden').innerText;
-        const ueberStd = document.getElementById('ueberstunden').innerText;
-        const urlaubMonat = document.getElementById('urlaubVerbraucht').innerText;
-        const krankMonat = document.getElementById('krankTage').innerText;
-
-        const bodyText = encodeURIComponent(
-            `Hallo Petra,\n\nhier ist meine Zeiterfassung für ${monthName}${year}:\n\n` +
-            `Mitarbeiterin: Julia Österreicher\n` +
-            `Betrieb: Haarwerk-Leonding by Petra Aumayr e.U., Stadtplatz 13, 4060 Leonding\n\n` +
-            `SOLL-Stunden: ${sollStd}\n` +
-            `IST-Stunden: ${istStd}\n` +
-            `Überstunden: ${ueberStd}\n` +
-            `Urlaubstage (Monat): ${urlaubMon
+        document.getElementById('restUrlaub
