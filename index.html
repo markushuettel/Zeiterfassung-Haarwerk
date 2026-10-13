@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zeiterfassung App</title>
+    <style>
+        :root {
+            --primary: #1f2937;
+            --accent: #2563eb;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --border: #e5e7eb;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --success: #059669;
+            --warning: #d97706;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            padding-bottom: 90px;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin: 0 0 4px 0;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }
+
+        .stats-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .stats-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .stat-box {
+            background: #f9fafb;
+            padding: 10px 6px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .stat-val {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        .setting-row input {
+            width: 70px;
+            padding: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .month-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .month-nav-btn {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        input[type="month"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: white;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .day-card {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .day-card.workday {
+            border-left: 4px solid var(--accent);
+        }
+
+        .day-card.weekend, .day-card.frei {
+            opacity: 0.8;
+            background: #f9fafb;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .day-title {
+            font-size: 0.95rem;
+        }
+
+        .day-soll {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .inputs-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1.2fr;
+            gap: 6px;
+        }
+
+        input, select {
+            padding: 8px 4px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            width: 100%;
+            text-align: center;
+            background: white;
+        }
+
+        .footer-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            width: 100%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-secondary {
+            background: #4b5563;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Zeiterfassung & Urlaub</h1>
+        <div class="subtitle">4-Tage-Woche (Di–Fr | 39h/Woche) • 16 Tage Urlaubsanspruch</div>
+    </header>
+
+    <!-- Urlaubs- & Stundenübersicht -->
+    <div class="card">
+        <div class="stats-grid-3">
+            <div class="stat-box">
+                <div class="stat-label">Resturlaub</div>
+                <div class="stat-val" id="restUrlaub">16 Tage</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Urlaub Monat</div>
+                <div class="stat-val" id="urlaubVerbraucht">0 Tage</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Krank Monat</div>
+                <div class="stat-val" id="krankTage">0 Tage</div>
+            </div>
+        </div>
+        <div class="stats-grid-2">
+            <div class="stat-box">
+                <div class="stat-label">IST-Std. (Monat)</div>
+                <div class="stat-val" id="istStunden">0.0h</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Überstunden</div>
+                <div class="stat-val" id="ueberstunden">+0.0h</div>
+            </div>
+        </div>
+        <div class="setting-row">
+            <span>Jährlicher Urlaubsanspruch:</span>
+            <input type="number" id="yearlyVacationInput" value="16" oninput="saveYearlyVacation()">
+        </div>
+    </div>
+
+    <!-- Kalendermonat Navigation -->
+    <div class="month-picker-container">
+        <button class="month-nav-btn" onclick="changeMonth(-1)">&lt;</button>
+        <input type="month" id="monthPicker" value="2026-10" onchange="renderDays()">
+        <button class="month-nav-btn" onclick="changeMonth(1)">&gt;</button>
+    </div>
+
+    <div id="daysList"></div>
+</div>
+
+<div class="footer-nav">
+    <button class="btn btn-secondary" onclick="resetMonth()">Monat leeren</button>
+    <button class="btn" onclick="exportCSV()">Monat als CSV Exportieren</button>
+</div>
+
+<script>
+    let yearlyVacation = parseInt(localStorage.getItem('yearly_vacation')) || 16;
+    document.getElementById('yearlyVacationInput').value = yearlyVacation;
+
+    function saveYearlyVacation() {
+        const val = parseInt(document.getElementById('yearlyVacationInput').value);
+        if (!isNaN(val)) {
+            yearlyVacation = val;
+            localStorage.setItem('yearly_vacation', yearlyVacation);
+            recalculate();
+        }
+    }
+
+    function changeMonth(delta) {
+        const picker = document.getElementById('monthPicker');
+        const [year, month] = picker.value.split('-').map(Number);
+        
+        let newDate = new Date(year, month - 1 + delta, 1);
+        let newYear = newDate.getFullYear();
+        let newMonth = String(newDate.getMonth() + 1).padStart(2, '0');
+        
+        picker.value = `${newYear}-${newMonth}`;
+        renderDays();
+    }
+
+    function getStorageKey(monthStr) {
+        return 'zeiterfassung_' + (monthStr || document.getElementById('monthPicker').value);
+    }
+
+    function renderDays() {
+        const pickerVal = document.getElementById('monthPicker').value;
+        const [year, month] = pickerVal.split('-').map(Number);
+        
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const container = document.getElementById('daysList');
+        container.innerHTML = '';
+
+        let savedData = {};
+        try {
+            const data = localStorage.getItem(getStorageKey());
+            if (data) savedData = JSON.parse(data);
+        } catch(e) {}
+
+        const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(year, month - 1, d);
+            const dayOfWeek = date.getDay();
+            const dayName = dayNames[dayOfWeek];
+
+            const isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5);
+
+            const dayKey = `day_${d}`;
+            const daySaved = savedData[dayKey] || {};
+
+            let defaultStart = daySaved.start !== undefined ? daySaved.start : (isWorkday ? '08:00' : '');
+            let defaultEnd = daySaved.end !== undefined ? daySaved.end : (isWorkday ? '18:30' : '');
+            let defaultPause = daySaved.pause !== undefined ? daySaved.pause : (isWorkday ? '45' : '');
+            let defaultStatus = daySaved.status !== undefined ? daySaved.status : (isWorkday ? 'Arbeit' : (dayOfWeek === 1 ? 'Frei' : 'Wochenende'));
+
+            const dateStr = `${String(d).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}`;
+
+            const card = document.createElement('div');
+            card.className = `day-card ${isWorkday ? 'workday' : 'frei'}`;
+
+            card.innerHTML = `
+                <div class="day-header">
+                    <span class="day-title">${dayName}, ${dateStr}</span>
+                    <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
+                </div>
+                <div class="inputs-grid">
+                    <input type="time" id="start_${d}" value="${defaultStart}" oninput="saveAndRecalculate()">
+                    <input type="time" id="end_${d}" value="${defaultEnd}" oninput="saveAndRecalculate()">
+                    <input type="number" id="pause_${d}" placeholder="Pause" value="${defaultPause}" oninput="saveAndRecalculate()">
+                    <select id="status_${d}" onchange="saveAndRecalculate()">
+                        <option value="Arbeit" ${defaultStatus === 'Arbeit' ? 'selected' : ''}>Arbeit</option>
+                        <option value="Urlaub" ${defaultStatus === 'Urlaub' ? 'selected' : ''}>Urlaub</option>
+                        <option value="Krank" ${defaultStatus === 'Krank' ? 'selected' : ''}>Krank</option>
+                        <option value="Frei" ${defaultStatus === 'Frei' ? 'selected' : ''}>Frei</option>
+                        <option value="Wochenende" ${defaultStatus === 'Wochenende' ? 'selected' : ''}>Wochenende</option>
+                    </select>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        recalculate();
+    }
+
+    function calculateTotalUsedVacationInYear(currentYear) {
+        let used = 0;
+        for (let m = 1; m <= 12; m++) {
+            const monthStr = `${currentYear}-${String(m).padStart(2, '0')}`;
+            try {
+                const dataStr = localStorage.getItem('zeiterfassung_' + monthStr);
+                if (dataStr) {
+                    const data = JSON.parse(dataStr);
+                    Object.values(data).forEach(day => {
+                        if (day.status === 'Urlaub') used++;
+                    });
+                }
+            } catch(e) {}
+        }
+        return used;
+    }
+
+    function saveAndRecalculate() {
+        const pickerVal = document.getElementById('monthPicker').value;
+        const [year, month] = pickerVal.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        let monthData = {};
+        let totalIstMin = 0;
+        let totalSollMin = 0;
+        let urlaubTageMonat = 0;
+        let krankTageMonat = 0;
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(year, month - 1, d);
+            const dayOfWeek = date.getDay();
+            const isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5);
+
+            const startEl = document.getElementById(`start_${d}`);
+            const endEl = document.getElementById(`end_${d}`);
+            const pauseEl = document.getElementById(`pause_${d}`);
+            const statusEl = document.getElementById(`status_${d}`);
+
+            if (!startEl) continue;
+
+            const startVal = startEl.value;
+            const endVal = endEl.value;
+            const pauseVal = parseInt(pauseEl.value) || 0;
+            const statusVal = statusEl.value;
+
+            monthData[`day_${d}`] = {
+                start: startVal,
+                end: endVal,
+                pause: pauseVal,
+                status: statusVal
+            };
+
+            const sollMin = isWorkday ? 585 : 0;
+            totalSollMin += sollMin;
+
+            if (statusVal === 'Urlaub') {
+                urlaubTageMonat++;
+                totalIstMin += sollMin;
+            } else if (statusVal === 'Krank') {
+                krankTageMonat++;
+                totalIstMin += sollMin;
+            } else if (statusVal === 'Arbeit' && startVal && endVal) {
+                const [sH, sM] = startVal.split(':').map(Number);
+                const [eH, eM] = endVal.split(':').map(Number);
+                let diffMin = (eH * 60 + eM) - (sH * 60 + sM) - pauseVal;
+                if (diffMin > 0) totalIstMin += diffMin;
+            }
+        }
+
+        try {
+            localStorage.setItem(getStorageKey(), JSON.stringify(monthData));
+        } catch(e) {}
+
+        const totalVacationUsedInYear = calculateTotalUsedVacationInYear(year);
+        const restVacation = yearlyVacation - totalVacationUsedInYear;
+
+        document.getElementById('restUrlaub').innerText = `${restVacation} Tage`;
+        document.getElementById('urlaubVerbraucht').innerText = `${urlaubTageMonat} Tage`;
+        document.getElementById('krankTage').innerText = `${krankTageMonat} Tage`;
+
+        const istHours = (totalIstMin / 60).toFixed(2);
+        document.getElementById('istStunden').innerText = `${istHours}h`;
+
+        const diffMin = totalIstMin - totalSollMin;
+        const diffHours = (diffMin / 60).toFixed(2);
+        const sign = diffMin >= 0 ? '+' : '';
+        document.getElementById('ueberstunden').innerText = `${sign}${diffHours}h`;
+    }
+
+    function recalculate() {
+        saveAndRecalculate();
+    }
+
+    function resetMonth() {
+        if (confirm("Möchtest du alle eingetragenen Zeiten für diesen Monat zurücksetzen?")) {
+            localStorage.removeItem(getStorageKey());
+            renderDays();
+        }
+    }
+
+    function exportCSV() {
+        const pickerVal = document.getElementById('monthPicker').value;
+        const [year, month] = pickerVal.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+
+        let csvContent = "data:text/csv;charset=utf-8,Datum;Wochentag;Arbeitsbeginn;Arbeitsende;Pause (Min);Status\n";
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(year, month - 1, d);
+            const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+            const dayName = dayNames[date.getDay()];
+            const dateStr = `${String(d).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}`;
+
+            const startVal = document.getElementById(`start_${d}`).value;
+            const endVal = document.getElementById(`end_${d}`).value;
+            const pauseVal = document.getElementById(`pause_${d}`).value;
+            const status = document.getElementById(`status_${d}`).value;
+
+            csvContent += `${dateStr};${dayName};${startVal};${endVal};${pauseVal};${status}\n`;
+        }
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Zeiterfassung_${year}_${month}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    renderDays();
+</script>
+</body>
+</html>
