@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ZEITERFASSUNG 2026</title>
+    <title>ZEITERFASSUNG</title>
     <style>
         :root {
             --primary: #1f2937;
@@ -14,7 +14,7 @@
             --text: #111827;
             --text-muted: #6b7280;
             --success: #059669;
-            --warning: #d97706;
+            --danger: #dc2626;
         }
 
         * {
@@ -132,6 +132,11 @@
             border-left: 4px solid var(--accent);
         }
 
+        .day-card.holiday {
+            border-left: 4px solid var(--danger);
+            background: #fef2f2;
+        }
+
         .day-card.weekend, .day-card.frei {
             opacity: 0.8;
             background: #f9fafb;
@@ -149,6 +154,11 @@
             font-size: 0.95rem;
         }
 
+        .day-title.holiday-text {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
         .day-soll {
             font-size: 0.8rem;
             color: var(--text-muted);
@@ -160,6 +170,20 @@
             gap: 6px;
         }
 
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .input-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            text-align: center;
+        }
+
         input, select {
             padding: 8px 4px;
             border: 1px solid var(--border);
@@ -168,6 +192,14 @@
             width: 100%;
             text-align: center;
             background: white;
+        }
+
+        .pause-info {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            text-align: center;
+            font-style: italic;
         }
 
         .footer-nav {
@@ -195,6 +227,9 @@
             width: 100%;
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
         }
 
         .btn-secondary {
@@ -207,16 +242,16 @@
             .card, .day-card { border: 1px solid #ccc !important; box-shadow: none !important; break-inside: avoid; }
             input, select { border: none; background: transparent; font-weight: bold; appearance: none; -webkit-appearance: none; }
         }
-</style>
+    </style>
 </head>
 <body>
 
 <div class="container">
     <header>
-        <h1>ZEITERFASSUNG 2026</h1>
+        <h1>ZEITERFASSUNG</h1>
         <div class="subtitle">
             <strong>Mitarbeiterin:</strong> Julia Österreicher<br>
-            <strong>Betrieb:</strong> Haarwerk-Leonding by Petra Aumayr<br>
+            <strong>Betrieb:</strong> Haarwerk-Leonding by Petra Aumayr e.U., Stadtplatz 13, 4060 Leonding<br>
             4-Tage-Woche (Di–Fr | 39h/Woche)
         </div>
     </header>
@@ -264,13 +299,68 @@
 </div>
 
 <div class="footer-nav">
-    <button class="btn btn-secondary" onclick="resetMonth()">Leeren</button>
-    <button class="btn btn-secondary" onclick="exportPDF()">PDF Export</button>
-    <button class="btn" onclick="exportCSV()">CSV Export</button>
+    <a href="#" id="emailBtn" class="btn btn-secondary" onclick="prepareEmail(event)">E-Mail senden</a>
+    <button class="btn" onclick="exportPDF()">PDF Export</button>
 </div>
 
 <script>
-    let yearlyVacation = parseInt(localStorage.getItem('yearly_vacation')) || 16;
+    let yearlyVacation = 16;
+
+    function getAustrianHolidays(year) {
+        let holidays = {
+            [`${year}-01-01`]: "Neujahr",
+            [`${year}-01-06`]: "Hl. Drei Könige",
+            [`${year}-05-01`]: "Staatsfeiertag",
+            [`${year}-08-15`]: "Mariä Himmelfahrt",
+            [`${year}-10-26`]: "Nationalfeiertag",
+            [`${year}-11-01`]: "Allerheiligen",
+            [`${year}-12-08`]: "Mariä Empfängnis",
+            [`${year}-12-25`]: "Christtag",
+            [`${year}-12-26`]: "Stefanitag"
+        };
+
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const L = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * L) / 451);
+        const month = Math.floor((h + L - 7 * m + 114) / 31);
+        const day = ((h + L - 7 * m + 114) % 31) + 1;
+
+        const easterSunday = new Date(year, month - 1, day);
+
+        function addDays(date, days) {
+            const result = new Date(date);
+            result.setDate(result.getDate() + days);
+            return result;
+        }
+
+        const formatDate = (d) => {
+            const yy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yy}-${mm}-${dd}`;
+        };
+
+        const easterMonday = addDays(easterSunday, 1);
+        const ascension = addDays(easterSunday, 39);
+        const whitMonday = addDays(easterSunday, 50);
+        const corpusChristi = addDays(easterSunday, 60);
+
+        holidays[formatDate(easterMonday)] = "Ostermontag";
+        holidays[formatDate(ascension)] = "Christi Himmelfahrt";
+        holidays[formatDate(whitMonday)] = "Pfingstmontag";
+        holidays[formatDate(corpusChristi)] = "Fronleichnam";
+
+        return holidays;
+    }
 
     function changeMonth(delta) {
         const picker = document.getElementById('monthPicker');
@@ -286,66 +376,6 @@
 
     function getStorageKey(monthStr) {
         return 'zeiterfassung_' + (monthStr || document.getElementById('monthPicker').value);
-    }
-
-    function renderDays() {
-        const pickerVal = document.getElementById('monthPicker').value;
-        const [year, month] = pickerVal.split('-').map(Number);
-        
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const container = document.getElementById('daysList');
-        container.innerHTML = '';
-
-        let savedData = {};
-        try {
-            const data = localStorage.getItem(getStorageKey());
-            if (data) savedData = JSON.parse(data);
-        } catch(e) {}
-
-        const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const date = new Date(year, month - 1, d);
-            const dayOfWeek = date.getDay();
-            const dayName = dayNames[dayOfWeek];
-
-            const isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5);
-
-            const dayKey = `day_${d}`;
-            const daySaved = savedData[dayKey] || {};
-
-            let defaultStart = daySaved.start !== undefined ? daySaved.start : (isWorkday ? '08:00' : '');
-            let defaultEnd = daySaved.end !== undefined ? daySaved.end : (isWorkday ? '18:30' : '');
-            let defaultPause = daySaved.pause !== undefined ? daySaved.pause : (isWorkday ? '45' : '');
-            let defaultStatus = daySaved.status !== undefined ? daySaved.status : (isWorkday ? 'Arbeit' : (dayOfWeek === 1 ? 'Frei' : 'Wochenende'));
-
-            const dateStr = `${String(d).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}`;
-
-            const card = document.createElement('div');
-            card.className = `day-card ${isWorkday ? 'workday' : 'frei'}`;
-
-            card.innerHTML = `
-                <div class="day-header">
-                    <span class="day-title">${dayName}, ${dateStr}</span>
-                    <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
-                </div>
-                <div class="inputs-grid">
-                    <input type="time" id="start_${d}" value="${defaultStart}" oninput="saveAndRecalculate()">
-                    <input type="time" id="end_${d}" value="${defaultEnd}" oninput="saveAndRecalculate()">
-                    <input type="number" id="pause_${d}" placeholder="Pause" value="${defaultPause}" oninput="saveAndRecalculate()">
-                    <select id="status_${d}" onchange="saveAndRecalculate()">
-                        <option value="Arbeit" ${defaultStatus === 'Arbeit' ? 'selected' : ''}>Arbeit</option>
-                        <option value="Urlaub" ${defaultStatus === 'Urlaub' ? 'selected' : ''}>Urlaub</option>
-                        <option value="Krank" ${defaultStatus === 'Krank' ? 'selected' : ''}>Krank</option>
-                        <option value="Frei" ${defaultStatus === 'Frei' ? 'selected' : ''}>Frei</option>
-                        <option value="Wochenende" ${defaultStatus === 'Wochenende' ? 'selected' : ''}>Wochenende</option>
-                    </select>
-                </div>
-            `;
-            container.appendChild(card);
-        }
-
-        saveAndRecalculate();
     }
 
     function calculateTotalUsedVacationInYear(currentYear) {
@@ -365,10 +395,99 @@
         return used;
     }
 
+    function renderDays() {
+        const pickerVal = document.getElementById('monthPicker').value;
+        const [year, month] = pickerVal.split('-').map(Number);
+        
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const container = document.getElementById('daysList');
+        container.innerHTML = '';
+
+        let savedData = {};
+        try {
+            const data = localStorage.getItem(getStorageKey());
+            if (data) savedData = JSON.parse(data);
+        } catch(e) {}
+
+        const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+        const holidays = getAustrianHolidays(year);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(year, month - 1, d);
+            const dayOfWeek = date.getDay();
+            const dayName = dayNames[dayOfWeek];
+
+            const mmStr = String(month).padStart(2, '0');
+            const ddStr = String(d).padStart(2, '0');
+            const dateKeyStr = `${year}-${mmStr}-${ddStr}`;
+            const holidayName = holidays[dateKeyStr];
+
+            const isHoliday = !!holidayName;
+            const isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5) && !isHoliday;
+
+            const dayKey = `day_${d}`;
+            const daySaved = savedData[dayKey] || {};
+
+            let defaultStart = daySaved.start !== undefined ? daySaved.start : (isWorkday ? '08:00' : '');
+            let defaultEnd = daySaved.end !== undefined ? daySaved.end : (isWorkday ? '18:30' : '');
+            let defaultPause = daySaved.pause !== undefined ? daySaved.pause : (isWorkday ? '45' : '');
+            let defaultStatus = daySaved.status !== undefined ? daySaved.status : 'Arbeit';
+
+            const dateStr = `${ddStr}.${mmStr}.${year}`;
+
+            const card = document.createElement('div');
+            let cardClass = 'day-card';
+            if (isHoliday) cardClass += ' holiday';
+            else if (isWorkday) cardClass += ' workday';
+            else cardClass += ' frei';
+
+            card.className = cardClass;
+
+            let titleDisplay = `${dayName}, ${dateStr}`;
+            if (isHoliday) {
+                titleDisplay += ` (${holidayName})`;
+            }
+
+            card.innerHTML = `
+                <div class="day-header">
+                    <span class="day-title ${isHoliday ? 'holiday-text' : ''}">${titleDisplay}</span>
+                    <span class="day-soll">Soll: ${isWorkday ? '9:45h' : '0h'}</span>
+                </div>
+                <div class="inputs-grid">
+                    <div class="input-group">
+                        <span class="input-label">Anfang</span>
+                        <input type="time" id="start_${d}" value="${defaultStart}" oninput="saveAndRecalculate()">
+                    </div>
+                    <div class="input-group">
+                        <span class="input-label">Ende</span>
+                        <input type="time" id="end_${d}" value="${defaultEnd}" oninput="saveAndRecalculate()">
+                    </div>
+                    <div class="input-group">
+                        <span class="input-label">Pause</span>
+                        <input type="number" id="pause_${d}" value="${defaultPause}" oninput="saveAndRecalculate()">
+                    </div>
+                    <div class="input-group">
+                        <span class="input-label">Status</span>
+                        <select id="status_${d}" onchange="saveAndRecalculate()">
+                            <option value="Arbeit" ${defaultStatus === 'Arbeit' ? 'selected' : ''}>Arbeit</option>
+                            <option value="Urlaub" ${defaultStatus === 'Urlaub' ? 'selected' : ''}>Urlaub</option>
+                            <option value="Krank" ${defaultStatus === 'Krank' ? 'selected' : ''}>Krank</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pause-info">Gesetzliche Pause: 45 Min bei 9,75h Arbeitszeit</div>
+            `;
+            container.appendChild(card);
+        }
+
+        saveAndRecalculate();
+    }
+
     function saveAndRecalculate() {
         const pickerVal = document.getElementById('monthPicker').value;
         const [year, month] = pickerVal.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
+        const holidays = getAustrianHolidays(year);
 
         let monthData = {};
         let totalIstMin = 0;
@@ -379,7 +498,10 @@
         for (let d = 1; d <= daysInMonth; d++) {
             const date = new Date(year, month - 1, d);
             const dayOfWeek = date.getDay();
-            const isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5);
+            const mmStr = String(month).padStart(2, '0');
+            const ddStr = String(d).padStart(2, '0');
+            const isHoliday = !!holidays[`${year}-${mmStr}-${ddStr}`];
+            const isWorkday = (dayOfWeek >= 2 && dayOfWeek <= 5) && !isHoliday;
 
             const startEl = document.getElementById(`start_${d}`);
             const endEl = document.getElementById(`end_${d}`);
@@ -391,7 +513,7 @@
             const startVal = startEl.value;
             const endVal = endEl.value;
             const pauseVal = parseInt(pauseEl.value) || 0;
-            const statusVal = statusEl.value;
+            const statusVal = statusEl ? statusEl.value : 'Arbeit';
 
             monthData[`day_${d}`] = {
                 start: startVal,
@@ -403,17 +525,19 @@
             const sollMin = isWorkday ? 585 : 0;
             totalSollMin += sollMin;
 
-            if (statusVal === 'Urlaub') {
-                urlaubTageMonat++;
-                totalIstMin += sollMin;
-            } else if (statusVal === 'Krank') {
-                krankTageMonat++;
-                totalIstMin += sollMin;
-            } else if (statusVal === 'Arbeit' && startVal && endVal) {
-                const [sH, sM] = startVal.split(':').map(Number);
-                const [eH, eM] = endVal.split(':').map(Number);
-                let diffMin = (eH * 60 + eM) - (sH * 60 + sM) - pauseVal;
-                if (diffMin > 0) totalIstMin += diffMin;
+            if (isWorkday) {
+                if (statusVal === 'Urlaub') {
+                    urlaubTageMonat++;
+                    totalIstMin += sollMin;
+                } else if (statusVal === 'Krank') {
+                    krankTageMonat++;
+                    totalIstMin += sollMin;
+                } else if (statusVal === 'Arbeit' && startVal && endVal) {
+                    const [sH, sM] = startVal.split(':').map(Number);
+                    const [eH, eM] = endVal.split(':').map(Number);
+                    let diffMin = (eH * 60 + eM) - (sH * 60 + sM) - pauseVal;
+                    if (diffMin > 0) totalIstMin += diffMin;
+                }
             }
         }
 
@@ -439,70 +563,37 @@
         document.getElementById('ueberstunden').innerText = `${sign}${diffHours}h`;
     }
 
-    function resetMonth() {
-        if (confirm("Möchtest du alle eingetragenen Zeiten für diesen Monat zurücksetzen?")) {
-            localStorage.removeItem(getStorageKey());
-            renderDays();
-        }
-    }
-
     function exportPDF() {
         window.print();
     }
 
-    function exportCSV() {
+    function prepareEmail(e) {
+        e.preventDefault();
         const pickerVal = document.getElementById('monthPicker').value;
         const [year, month] = pickerVal.split('-').map(Number);
-        const daysInMonth = new Date(year, month, 0).getDate();
-
-        const restUrlaub = document.getElementById('restUrlaub').innerText;
+        
+        const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+        const monthName = monthNames[month - 1];
+        const subject = encodeURIComponent(`Zeiterfassung ${monthName} ${year}`);
+        const istStd = document.getElementById('istStunden').innerText;
+        const sollStd = document.getElementById('sollStunden').innerText;
+        const ueberStd = document.getElementById('ueberstunden').innerText;
         const urlaubMonat = document.getElementById('urlaubVerbraucht').innerText;
         const krankMonat = document.getElementById('krankTage').innerText;
-        const istStd = document.getElementById('istStunden').innerText;
-        const sollStdSum = document.getElementById('sollStunden').innerText;
-        const ueberStd = document.getElementById('ueberstunden').innerText;
 
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Mitarbeiterin:;Julia Österreicher;Betrieb:;Haarwerk-Leonding by Petra Aumayr\n";
-        csvContent += `Monat:;${month}/${year};Jahresurlaub Gesamt:;${yearlyVacation} Tage\n`;
-        csvContent += `Resturlaub (Jahr):;${restUrlaub};Urlaub (Monat):;${urlaubMonat};Krankheit (Monat):;${krankMonat}\n`;
-        csvContent += `IST-Stunden (Monat):;${istStd};SOLL-Stunden (Monat):;${sollStdSum};Ueberstunden (Monat):;${ueberStd}\n\n`;
-        csvContent += "Datum;Wochentag;Arbeitsbeginn;Arbeitsende;Pause (Min);Soll (Std);Ist (Std);Status\n";
+        const bodyText = encodeURIComponent(
+            `Hallo Petra,\n\nhier ist meine Zeiterfassung für ${monthName} ${year}:\n\n` +
+            `Mitarbeiterin: Julia Österreicher\n` +
+            `Betrieb: Haarwerk-Leonding by Petra Aumayr e.U., Stadtplatz 13, 4060 Leonding\n\n` +
+            `SOLL-Stunden: ${sollStd}\n` +
+            `IST-Stunden: ${istStd}\n` +
+            `Überstunden: ${ueberStd}\n` +
+            `Urlaubstage (Monat): ${urlaubMonat}\n` +
+            `Krankheitstage (Monat): ${krankMonat}\n\n` +
+            `(Bitte nutze den PDF-Export Button in der App, um die vollständige PDF-Ansicht als Anhang mitzusenden).\n\nLiebe Grüße\nJulia`
+        );
 
-        for (let d = 1; d <= daysInMonth; d++) {
-            const date = new Date(year, month - 1, d);
-            const dayNames = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-            const dayName = dayNames[date.getDay()];
-            const dateStr = `${String(d).padStart(2,'0')}.${String(month).padStart(2,'0')}.${year}`;
-
-            const startVal = document.getElementById(`start_${d}`).value;
-            const endVal = document.getElementById(`end_${d}`).value;
-            const pauseVal = document.getElementById(`pause_${d}`).value;
-            const status = document.getElementById(`status_${d}`).value;
-
-            const isWorkday = (date.getDay() >= 2 && date.getDay() <= 5);
-            const sollStd = isWorkday ? "9.75" : "0";
-            
-            let istStdTag = "0";
-            if (status === "Urlaub" || status === "Krank") {
-                istStdTag = sollStd;
-            } else if (status === "Arbeit" && startVal && endVal) {
-                const [sH, sM] = startVal.split(':').map(Number);
-                const [eH, eM] = endVal.split(':').map(Number);
-                let diffMin = (eH * 60 + eM) - (sH * 60 + sM) - (parseInt(pauseVal) || 0);
-                if (diffMin > 0) istStdTag = (diffMin / 60).toFixed(2);
-            }
-
-            csvContent += `${dateStr};${dayName};${startVal};${endVal};${pauseVal};${sollStd};${istStdTag};${status}\n`;
-        }
-
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Zeiterfassung_Julia_Oesterreicher_${year}_${month}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        window.location.href = `mailto:info@haarwerk-leonding.at?subject=${subject}&body=${bodyText}`;
     }
 
     window.onload = function() {
